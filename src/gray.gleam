@@ -1,10 +1,11 @@
+import color
 import gleam/erlang/process
-import gleam/float
 import gleam/function.{tap}
 import gleam/int
 import gleam/io
 import gleam/list.{each, map, range, sort}
 import gleam/otp/actor
+import vec3.{Vec3}
 
 pub fn main() -> Nil {
   let output = process.new_subject()
@@ -34,15 +35,14 @@ pub fn main() -> Nil {
               let row =
                 range(0, image_width - 1)
                 |> map(fn(i) {
-                  let r = int.to_float(i) /. int.to_float(image_width - 1)
-                  let g = int.to_float(j) /. int.to_float(image_height - 1)
-                  let b = 0.0
+                  let c =
+                    Vec3(
+                      x: int.to_float(i) /. int.to_float(image_width - 1),
+                      y: int.to_float(j) /. int.to_float(image_height - 1),
+                      z: 0.0,
+                    )
 
-                  let ir = float.truncate(255.999 *. r)
-                  let ig = float.truncate(255.999 *. g)
-                  let ib = float.truncate(255.999 *. b)
-
-                  #(ir, ig, ib)
+                  color.to_pixel(c)
                 })
 
               actor.send(output, #(j, row))
