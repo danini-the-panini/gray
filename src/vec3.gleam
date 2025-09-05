@@ -4,6 +4,9 @@ pub type Vec3 {
   Vec3(x: Float, y: Float, z: Float)
 }
 
+pub type Point3 =
+  Vec3
+
 pub fn negate(v: Vec3) -> Vec3 {
   Vec3(float.negate(v.x), float.negate(v.y), float.negate(v.z))
 }

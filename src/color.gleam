@@ -1,8 +1,8 @@
 import gleam/float
-import vec3
+import vec3.{type Vec3}
 
 pub type Color =
-  vec3.Vec3
+  Vec3
 
 pub fn to_pixel(c: Color) -> #(Int, Int, Int) {
   let r = c.x
