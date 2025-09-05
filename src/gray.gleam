@@ -18,6 +18,9 @@ pub fn main() -> Nil {
   )
 
   each(range(0, image_height - 1), fn(j) {
+    io.print_error(
+      "\rScanlines remaining: " <> int.to_string(image_height - j) <> " ",
+    )
     each(range(0, image_width - 1), fn(i) {
       let r = int.to_float(i) /. int.to_float(image_width - 1)
       let g = int.to_float(j) /. int.to_float(image_height - 1)
@@ -36,4 +39,6 @@ pub fn main() -> Nil {
       )
     })
   })
+
+  io.print_error("\rDone.                  ")
 }
