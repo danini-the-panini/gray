@@ -7,16 +7,30 @@ import gleam/io
 import gleam/list.{each, map, range, sort}
 import gleam/otp/actor
 import ray.{type Ray, Ray}
-import vec3.{Vec3}
+import vec3.{type Point3, Vec3}
+
+fn hit_sphere(center: Point3, radius: Float, r: Ray) -> Bool {
+  let oc = vec3.sub(center, r.orig)
+  let a = vec3.length_sq(r.dir)
+  let b = -2.0 *. vec3.dot(r.dir, oc)
+  let c = vec3.length_sq(oc) -. radius *. radius
+  let d = b *. b -. 4.0 *. a *. c
+  d >=. 0.0
+}
 
 fn ray_color(r: Ray) -> Color {
-  let unit_dir = vec3.normalize(r.dir)
-  let a = 0.5 *. { unit_dir.y +. 1.0 }
+  case hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, r) {
+    True -> Vec3(1.0, 0.0, 0.0)
+    False -> {
+      let unit_dir = vec3.normalize(r.dir)
+      let a = 0.5 *. { unit_dir.y +. 1.0 }
 
-  vec3.add(
-    vec3.scale(Vec3(1.0, 1.0, 1.0), 1.0 -. a),
-    vec3.scale(Vec3(0.5, 0.7, 1.0), a),
-  )
+      vec3.add(
+        vec3.scale(Vec3(1.0, 1.0, 1.0), 1.0 -. a),
+        vec3.scale(Vec3(0.5, 0.7, 1.0), a),
+      )
+    }
+  }
 }
 
 pub fn main() -> Nil {
