@@ -1,4 +1,5 @@
 import gleam/float
+import interval.{clamp}
 import vec3.{type Vec3}
 
 pub type Color =
@@ -9,9 +10,10 @@ pub fn to_pixel(c: Color) -> #(Int, Int, Int) {
   let g = c.y
   let b = c.z
 
-  let rbyte = float.truncate(255.999 *. r)
-  let gbyte = float.truncate(255.999 *. g)
-  let bbyte = float.truncate(255.999 *. b)
+  let intensity = interval.new(0.0, 0.999)
+  let rbyte = float.truncate(256.0 *. clamp(intensity, r))
+  let gbyte = float.truncate(256.0 *. clamp(intensity, g))
+  let bbyte = float.truncate(256.0 *. clamp(intensity, b))
 
   #(rbyte, gbyte, bbyte)
 }

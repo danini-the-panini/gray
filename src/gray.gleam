@@ -18,7 +18,7 @@ pub fn main() -> Nil {
       Sphere(Vec3(0.0, -100.5, -1.0), 100.0),
     ])
 
-  let cam = camera.new(400, 225)
+  let cam = camera.new(400, 225, 50)
 
   io.println(
     "P3\n"
@@ -62,17 +62,25 @@ pub fn main() -> Nil {
     process.receive_forever(output)
     |> tap(fn(_) {
       io.print_error(
-        "\rScanlines remaining: " <> int.to_string(cam.image_height - j),
+        "\rRENDER: Scanlines remaining: "
+        <> int.to_string(cam.image_height - j)
+        <> " ",
       )
     })
   })
+  |> tap(fn(_) { io.println_error("\rDone.                         ") })
   |> sort(fn(a, b) {
     let #(j1, _) = a
     let #(j2, _) = b
     int.compare(j1, j2)
   })
   |> each(fn(row) {
-    let #(_, data) = row
+    let #(j, data) = row
+    io.print_error(
+      "\rOUTPUT: Scanlines remaining: "
+      <> int.to_string(cam.image_height - j)
+      <> " ",
+    )
     data
     |> each(fn(rgb) {
       let #(r, g, b) = rgb
@@ -83,7 +91,7 @@ pub fn main() -> Nil {
     })
   })
 
-  io.println_error("\rDone.                       ")
+  io.println_error("\rDone.                         ")
 
   Nil
 }

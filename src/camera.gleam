@@ -1,6 +1,7 @@
 import color.{type Color}
 import gleam/float
 import gleam/int
+import gleam/list.{fold, range}
 import gleam/option.{None, Some}
 import interval
 import object.{type Object}
@@ -12,6 +13,8 @@ pub type Camera {
     image_width: Int,
     image_height: Int,
     aspect_ratio: Float,
+    samples: Int,
+    samples_scale: Float,
     center: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
@@ -19,8 +22,10 @@ pub type Camera {
   )
 }
 
-pub fn new(image_width: Int, image_height: Int) -> Camera {
+pub fn new(image_width: Int, image_height: Int, samples: Int) -> Camera {
   let aspect_ratio = int.to_float(image_width) /. int.to_float(image_height)
+
+  let samples_scale = 1.0 /. int.to_float(samples)
 
   let center = Vec3(0.0, 0.0, 0.0)
 
@@ -51,6 +56,8 @@ pub fn new(image_width: Int, image_height: Int) -> Camera {
     image_width,
     image_height,
     aspect_ratio,
+    samples,
+    samples_scale,
     center,
     pixel_delta_u,
     pixel_delta_v,
@@ -58,14 +65,29 @@ pub fn new(image_width: Int, image_height: Int) -> Camera {
   )
 }
 
-pub fn render(cam: Camera, world: Object, i: Int, j: Int) -> Color {
-  let pixel_center =
-    cam.pixel00_loc
-    |> vec3.add(vec3.scale(cam.pixel_delta_u, int.to_float(i)))
-    |> vec3.add(vec3.scale(cam.pixel_delta_v, int.to_float(j)))
-  let r = Ray(cam.center, vec3.sub(pixel_center, cam.center))
+fn sample_square() -> Vec3 {
+  Vec3(float.random() -. 0.5, float.random() -. 0.5, 0.0)
+}
 
-  ray_color(r, world)
+fn get_ray(cam: Camera, i: Int, j: Int) -> Ray {
+  let offset = sample_square()
+  let pixel_sample =
+    cam.pixel00_loc
+    |> add(cam.pixel_delta_u |> scale(int.to_float(i) +. offset.x))
+    |> add(cam.pixel_delta_v |> scale(int.to_float(j) +. offset.y))
+
+  let ray_orig = cam.center
+  let ray_dir = pixel_sample |> sub(ray_orig)
+
+  Ray(ray_orig, ray_dir)
+}
+
+pub fn render(cam: Camera, world: Object, i: Int, j: Int) -> Color {
+  range(0, cam.samples)
+  |> fold(Vec3(0.0, 0.0, 0.0), fn(pixel_color, _) {
+    pixel_color |> add(cam |> get_ray(i, j) |> ray_color(world))
+  })
+  |> scale(cam.samples_scale)
 }
 
 pub fn ray_color(r: Ray, world: Object) -> Color {
