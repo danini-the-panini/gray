@@ -5,36 +5,19 @@ import gleam/function.{tap}
 import gleam/int
 import gleam/io
 import gleam/list.{each, map, range, sort}
-import gleam/order
+import gleam/option.{None, Some}
 import gleam/otp/actor
+import interval
+import object.{type Object, Group, Sphere}
 import ray.{type Ray, Ray}
-import vec3.{type Point3, Vec3}
+import vec3.{Vec3}
 
-fn hit_sphere(center: Point3, radius: Float, r: Ray) -> Float {
-  let oc = vec3.sub(center, r.orig)
-  let a = vec3.length_sq(r.dir)
-  let h = vec3.dot(r.dir, oc)
-  let c = vec3.length_sq(oc) -. radius *. radius
-  let d = h *. h -. a *. c
-
-  case float.compare(d, 0.0) {
-    order.Lt -> -1.0
-    _ -> {
-      let assert Ok(sqrtd) = float.square_root(d)
-      { h -. sqrtd } /. a
+fn ray_color(r: Ray, world: Object) -> Color {
+  case object.hit(world, r, interval.new_from(0.0)) {
+    Some(hit) -> {
+      hit.normal |> vec3.add(Vec3(1.0, 1.0, 1.0)) |> vec3.scale(0.5)
     }
-  }
-}
-
-fn ray_color(r: Ray) -> Color {
-  let t = hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, r)
-  case float.compare(t, 0.0) {
-    order.Gt -> {
-      let n =
-        r |> ray.at(t) |> vec3.sub(Vec3(0.0, 0.0, -1.0)) |> vec3.normalize()
-      Vec3(n.x +. 1.0, n.y +. 1.0, n.z +. 1.0) |> vec3.scale(0.5)
-    }
-    _ -> {
+    None -> {
       let unit_dir = vec3.normalize(r.dir)
       let a = 0.5 *. { unit_dir.y +. 1.0 }
 
@@ -48,6 +31,14 @@ fn ray_color(r: Ray) -> Color {
 
 pub fn main() -> Nil {
   let output = process.new_subject()
+
+  // World
+
+  let world =
+    Group([
+      Sphere(Vec3(0.0, 0.0, -1.0), 0.5),
+      Sphere(Vec3(0.0, -100.5, -1.0), 100.0),
+    ])
 
   // Image
 
@@ -103,7 +94,7 @@ pub fn main() -> Nil {
                   let r =
                     Ray(camera_center, vec3.sub(pixel_center, camera_center))
 
-                  color.to_pixel(ray_color(r))
+                  color.to_pixel(ray_color(r, world))
                 })
 
               actor.send(output, #(j, row))
