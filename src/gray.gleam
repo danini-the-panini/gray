@@ -1,38 +1,16 @@
-import color.{type Color}
+import camera
+import color
 import gleam/erlang/process
-import gleam/float
 import gleam/function.{tap}
 import gleam/int
 import gleam/io
 import gleam/list.{each, map, range, sort}
-import gleam/option.{None, Some}
 import gleam/otp/actor
-import interval
-import object.{type Object, Group, Sphere}
-import ray.{type Ray, Ray}
+import object.{Group, Sphere}
 import vec3.{Vec3}
-
-fn ray_color(r: Ray, world: Object) -> Color {
-  case object.hit(world, r, interval.new_from(0.0)) {
-    Some(hit) -> {
-      hit.normal |> vec3.add(Vec3(1.0, 1.0, 1.0)) |> vec3.scale(0.5)
-    }
-    None -> {
-      let unit_dir = vec3.normalize(r.dir)
-      let a = 0.5 *. { unit_dir.y +. 1.0 }
-
-      vec3.add(
-        vec3.scale(Vec3(1.0, 1.0, 1.0), 1.0 -. a),
-        vec3.scale(Vec3(0.5, 0.7, 1.0), a),
-      )
-    }
-  }
-}
 
 pub fn main() -> Nil {
   let output = process.new_subject()
-
-  // World
 
   let world =
     Group([
@@ -40,43 +18,18 @@ pub fn main() -> Nil {
       Sphere(Vec3(0.0, -100.5, -1.0), 100.0),
     ])
 
-  // Image
-
-  let image_width = 400
-  let image_height = 225
-  let aspect_ratio = int.to_float(image_width) /. int.to_float(image_height)
-
-  let focal_length = 1.0
-  let viewport_height = 2.0
-  let viewport_width = viewport_height *. aspect_ratio
-  let camera_center = Vec3(0.0, 0.0, 0.0)
-
-  let viewport_u = Vec3(viewport_width, 0.0, 0.0)
-  let viewport_v = Vec3(0.0, float.negate(viewport_height), 0.0)
-
-  let pixel_delta_u = viewport_u |> vec3.div(int.to_float(image_width))
-  let pixel_delta_v = viewport_v |> vec3.div(int.to_float(image_height))
-
-  let viewport_upper_left =
-    camera_center
-    |> vec3.sub(Vec3(0.0, 0.0, focal_length))
-    |> vec3.sub(vec3.div(viewport_u, 2.0))
-    |> vec3.sub(vec3.div(viewport_v, 2.0))
-
-  let pixel00_loc =
-    viewport_upper_left
-    |> vec3.add(pixel_delta_u |> vec3.add(pixel_delta_v) |> vec3.scale(0.5))
+  let cam = camera.new(400, 225)
 
   io.println(
     "P3\n"
-    <> int.to_string(image_width)
+    <> int.to_string(cam.image_width)
     <> " "
-    <> int.to_string(image_height)
+    <> int.to_string(cam.image_height)
     <> "\n256",
   )
 
   let workers =
-    range(0, image_height - 1)
+    range(0, cam.image_height - 1)
     |> map(fn(j) {
       let assert Ok(worker) =
         actor.new(Nil)
@@ -85,17 +38,8 @@ pub fn main() -> Nil {
             -1 -> actor.stop()
             j -> {
               let row =
-                range(0, image_width - 1)
-                |> map(fn(i) {
-                  let pixel_center =
-                    pixel00_loc
-                    |> vec3.add(vec3.scale(pixel_delta_u, int.to_float(i)))
-                    |> vec3.add(vec3.scale(pixel_delta_v, int.to_float(j)))
-                  let r =
-                    Ray(camera_center, vec3.sub(pixel_center, camera_center))
-
-                  color.to_pixel(ray_color(r, world))
-                })
+                range(0, cam.image_width - 1)
+                |> map(fn(i) { color.to_pixel(camera.render(cam, world, i, j)) })
 
               actor.send(output, #(j, row))
 
@@ -113,12 +57,12 @@ pub fn main() -> Nil {
   workers
   |> each(fn(worker) { process.send(worker.data, -1) })
 
-  range(0, image_height - 1)
+  range(0, cam.image_height - 1)
   |> map(fn(j) {
     process.receive_forever(output)
     |> tap(fn(_) {
       io.print_error(
-        "\rScanlines remaining: " <> int.to_string(image_height - j),
+        "\rScanlines remaining: " <> int.to_string(cam.image_height - j),
       )
     })
   })
