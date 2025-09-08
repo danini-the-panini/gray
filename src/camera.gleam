@@ -6,7 +6,7 @@ import gleam/option.{None, Some}
 import interval
 import object.{type Object}
 import ray.{type Ray, Ray}
-import scatter.{Scatter, scatter}
+import scatter.{scatter}
 import vec3.{type Vec3, Vec3, add, div, mul, normalize, scale, sub}
 
 pub type Camera {

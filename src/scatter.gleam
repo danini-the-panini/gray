@@ -1,9 +1,11 @@
 import color.{type Color}
+import gleam/float
 import gleam/option.{type Option, Some}
 import hit.{type Hit}
 import material.{Dielectric, Lambert, Metal}
 import ray.{type Ray, Ray}
-import vec3.{Vec3, add, normalize, reflect, scale}
+import util.{pow, sqrt}
+import vec3.{Vec3, add, dot, negate, normalize, reflect, refract, scale}
 
 pub type Scatter {
   Scatter(att: Color, ray: Ray)
@@ -29,8 +31,29 @@ fn scatter_metal(
   Some(Scatter(albedo, Ray(hit.p, dir)))
 }
 
+fn reflectance(cos: Float, ri: Float) -> Float {
+  let r0 = { 1.0 -. ri } /. { 1.0 +. ri }
+  let r0 = r0 *. r0
+  r0 +. { 1.0 -. r0 } *. pow(1.0 -. cos, 5.0)
+}
+
 fn scatter_dielectric(ri: Float, r_in: Ray, hit: Hit) -> Option(Scatter) {
-  let dir = hit.normal |> add(vec3.random_unit())
+  let ri = case hit.front_face {
+    True -> 1.0 /. ri
+    False -> ri
+  }
+
+  let unit_dir = normalize(r_in.dir)
+  let cos = unit_dir |> negate |> dot(hit.normal) |> float.min(1.0)
+  let sin = sqrt(1.0 -. cos *. cos)
+
+  let cannot_refract = ri *. sin >. 1.0
+
+  let dir = case cannot_refract || reflectance(cos, ri) >. float.random() {
+    True -> reflect(unit_dir, hit.normal)
+    False -> refract(unit_dir, hit.normal, ri)
+  }
+
   Some(Scatter(Vec3(1.0, 1.0, 1.0), Ray(hit.p, dir)))
 }
 

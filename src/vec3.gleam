@@ -64,6 +64,14 @@ pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
   v |> sub(n |> scale(2.0 *. dot(v, n)))
 }
 
+pub fn refract(uv: Vec3, n: Vec3, ri: Float) {
+  let cos = uv |> negate |> dot(n) |> float.min(1.0)
+  let perp = n |> scale(cos) |> add(uv) |> scale(ri)
+  let par =
+    scale(n, float.negate(sqrt(float.absolute_value(1.0 -. length_sq(perp)))))
+  add(perp, par)
+}
+
 pub fn normalize(v: Vec3) -> Vec3 {
   div(v, length(v))
 }
