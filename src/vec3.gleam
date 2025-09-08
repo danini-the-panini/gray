@@ -1,4 +1,5 @@
 import gleam/float
+import util.{sqrt}
 
 pub type Vec3 {
   Vec3(x: Float, y: Float, z: Float)
@@ -32,8 +33,7 @@ pub fn mul(u: Vec3, v: Vec3) -> Vec3 {
 }
 
 pub fn length(v: Vec3) -> Float {
-  let assert Ok(l) = float.square_root(length_sq(v))
-  l
+  sqrt(length_sq(v))
 }
 
 pub fn length_sq(v: Vec3) -> Float {
@@ -54,4 +54,33 @@ pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
 
 pub fn normalize(v: Vec3) -> Vec3 {
   div(v, length(v))
+}
+
+pub fn random() -> Vec3 {
+  Vec3(float.random(), float.random(), float.random())
+}
+
+pub fn random_in_range(min: Float, max: Float) -> Vec3 {
+  Vec3(
+    util.random_in_range(min, max),
+    util.random_in_range(min, max),
+    util.random_in_range(min, max),
+  )
+}
+
+pub fn random_unit() -> Vec3 {
+  let p = random_in_range(-1.0, 1.0)
+  let lensq = length_sq(p)
+  case { 1.0e-160 <=. lensq && lensq <=. 1.0 } {
+    True -> div(p, sqrt(lensq))
+    False -> random_unit()
+  }
+}
+
+pub fn random_hemi(normal: Vec3) -> Vec3 {
+  let on_unit_sphere = random_unit()
+  case on_unit_sphere |> dot(normal) >. 0.0 {
+    True -> on_unit_sphere
+    False -> negate(on_unit_sphere)
+  }
 }

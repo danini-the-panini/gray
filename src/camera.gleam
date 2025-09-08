@@ -15,6 +15,7 @@ pub type Camera {
     aspect_ratio: Float,
     samples: Int,
     samples_scale: Float,
+    max_depth: Int,
     center: Vec3,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
@@ -22,7 +23,12 @@ pub type Camera {
   )
 }
 
-pub fn new(image_width: Int, image_height: Int, samples: Int) -> Camera {
+pub fn new(
+  image_width: Int,
+  image_height: Int,
+  samples: Int,
+  max_depth: Int,
+) -> Camera {
   let aspect_ratio = int.to_float(image_width) /. int.to_float(image_height)
 
   let samples_scale = 1.0 /. int.to_float(samples)
@@ -58,6 +64,7 @@ pub fn new(image_width: Int, image_height: Int, samples: Int) -> Camera {
     aspect_ratio,
     samples,
     samples_scale,
+    max_depth,
     center,
     pixel_delta_u,
     pixel_delta_v,
@@ -85,23 +92,29 @@ fn get_ray(cam: Camera, i: Int, j: Int) -> Ray {
 pub fn render(cam: Camera, world: Object, i: Int, j: Int) -> Color {
   range(0, cam.samples)
   |> fold(Vec3(0.0, 0.0, 0.0), fn(pixel_color, _) {
-    pixel_color |> add(cam |> get_ray(i, j) |> ray_color(world))
+    pixel_color |> add(cam |> get_ray(i, j) |> ray_color(cam.max_depth, world))
   })
   |> scale(cam.samples_scale)
 }
 
-pub fn ray_color(r: Ray, world: Object) -> Color {
-  case object.hit(world, r, interval.new_from(0.0)) {
-    Some(hit) -> {
-      hit.normal |> add(Vec3(1.0, 1.0, 1.0)) |> scale(0.5)
-    }
-    None -> {
-      let unit_dir = normalize(r.dir)
-      let a = 0.5 *. { unit_dir.y +. 1.0 }
+pub fn ray_color(r: Ray, depth: Int, world: Object) -> Color {
+  case depth {
+    0 -> Vec3(0.0, 0.0, 0.0)
+    _ -> {
+      case object.hit(world, r, interval.new_from(0.001)) {
+        Some(hit) -> {
+          let dir = vec3.random_unit() |> add(hit.normal)
+          Ray(hit.p, dir) |> ray_color(depth - 1, world) |> scale(0.5)
+        }
+        None -> {
+          let unit_dir = normalize(r.dir)
+          let a = 0.5 *. { unit_dir.y +. 1.0 }
 
-      Vec3(1.0, 1.0, 1.0)
-      |> scale(1.0 -. a)
-      |> add(Vec3(0.5, 0.7, 1.0) |> scale(a))
+          Vec3(1.0, 1.0, 1.0)
+          |> scale(1.0 -. a)
+          |> add(Vec3(0.5, 0.7, 1.0) |> scale(a))
+        }
+      }
     }
   }
 }

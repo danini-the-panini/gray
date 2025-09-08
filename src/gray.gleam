@@ -6,9 +6,7 @@ import gleam/list.{each}
 import image
 import object.{Group, Sphere}
 import otpimpl
-
-// import otpimpl2
-// import syncimpl
+import syncimpl
 import vec3.{Vec3}
 
 pub fn main() -> Nil {
@@ -18,7 +16,7 @@ pub fn main() -> Nil {
       Sphere(Vec3(0.0, -100.5, -1.0), 100.0),
     ])
 
-  let cam = camera.new(1000, 1000, 50)
+  let cam = camera.new(400, 225, 100, 50)
 
   let assert Ok(file) = open_write("out.ppm")
 
@@ -36,7 +34,9 @@ pub fn main() -> Nil {
     |> each(fn(p) { image.write_pixel_f(file, p) })
   })
 
-  io.println_error("\rDone.                         ")
+  let assert Ok(Nil) = file_stream.close(file)
+
+  io.println_error("\rDone.                          ")
 
   Nil
 }

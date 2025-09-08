@@ -2,9 +2,9 @@ import gleam/float
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/order.{Lt}
-import gleam/result.{unwrap}
-import interval.{type Interval, Float, Interval}
-import ray.{type Ray}
+import interval.{type Interval, Float, Interval, surrounds}
+import ray.{type Ray, at}
+import util.{sqrt}
 import vec3.{type Point3, type Vec3, div, dot, sub}
 
 pub type Hit {
@@ -40,14 +40,14 @@ fn hit_sphere(
   case float.compare(discriminant, 0.0) {
     Lt -> None
     _ -> {
-      let sqrtd = float.square_root(discriminant) |> unwrap(0.0)
+      let sqrtd = sqrt(discriminant)
 
       let root = { h -. sqrtd } /. a
-      let in_range = case interval.surrounds(ray_t, root) {
+      let in_range = case ray_t |> surrounds(root) {
         True -> Some(root)
         False -> {
           let root = { h +. sqrtd } /. a
-          case interval.surrounds(ray_t, root) {
+          case ray_t |> surrounds(root) {
             True -> Some(root)
             False -> None
           }
@@ -56,7 +56,7 @@ fn hit_sphere(
 
       case in_range {
         Some(root) -> {
-          let p = ray.at(r, root)
+          let p = r |> at(root)
           Some(make_hit(p, p |> sub(center) |> div(radius), root, r))
         }
         None -> None
