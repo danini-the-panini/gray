@@ -3,7 +3,7 @@ import gleam/option.{type Option, Some}
 import hit.{type Hit}
 import material.{Dielectric, Lambert, Metal}
 import ray.{type Ray, Ray}
-import vec3.{Vec3, add, reflect}
+import vec3.{Vec3, add, normalize, reflect, scale}
 
 pub type Scatter {
   Scatter(att: Color, ray: Ray)
@@ -25,6 +25,7 @@ fn scatter_metal(
   hit: Hit,
 ) -> Option(Scatter) {
   let dir = r_in.dir |> reflect(hit.normal)
+  let dir = dir |> normalize |> add(vec3.random_unit() |> scale(fuzz))
   Some(Scatter(albedo, Ray(hit.p, dir)))
 }
 
