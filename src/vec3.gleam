@@ -40,6 +40,14 @@ pub fn length_sq(v: Vec3) -> Float {
   dot(v, v)
 }
 
+const epsilon = 1.0e-8
+
+pub fn near_zero(v: Vec3) -> Bool {
+  float.absolute_value(v.x) <. epsilon
+  && float.absolute_value(v.y) <. epsilon
+  && float.absolute_value(v.z) <. epsilon
+}
+
 pub fn dot(u: Vec3, v: Vec3) -> Float {
   u.x *. v.x +. u.y *. v.y +. u.z *. v.z
 }
@@ -50,6 +58,10 @@ pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
     u.z *. v.x -. u.x *. v.z,
     u.x *. v.y -. u.y *. v.x,
   )
+}
+
+pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+  v |> sub(n |> scale(2.0 *. dot(v, n)))
 }
 
 pub fn normalize(v: Vec3) -> Vec3 {

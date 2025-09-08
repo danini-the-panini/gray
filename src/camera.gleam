@@ -6,7 +6,8 @@ import gleam/option.{None, Some}
 import interval
 import object.{type Object}
 import ray.{type Ray, Ray}
-import vec3.{type Vec3, Vec3, add, div, normalize, scale, sub}
+import scatter.{Scatter, scatter}
+import vec3.{type Vec3, Vec3, add, div, mul, normalize, scale, sub}
 
 pub type Camera {
   Camera(
@@ -98,13 +99,15 @@ pub fn render(cam: Camera, world: Object, i: Int, j: Int) -> Color {
 }
 
 pub fn ray_color(r: Ray, depth: Int, world: Object) -> Color {
-  case depth {
-    0 -> Vec3(0.0, 0.0, 0.0)
-    _ -> {
+  case depth <= 0 {
+    True -> Vec3(0.0, 0.0, 0.0)
+    False -> {
       case object.hit(world, r, interval.new_from(0.001)) {
         Some(hit) -> {
-          let dir = vec3.random_unit() |> add(hit.normal)
-          Ray(hit.p, dir) |> ray_color(depth - 1, world) |> scale(0.5)
+          case scatter(r, hit) {
+            Some(scat) -> scat.att |> mul(ray_color(scat.ray, depth - 1, world))
+            None -> Vec3(0.0, 0.0, 0.0)
+          }
         }
         None -> {
           let unit_dir = normalize(r.dir)

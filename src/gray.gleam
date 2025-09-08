@@ -4,6 +4,7 @@ import gleam/int
 import gleam/io
 import gleam/list.{each}
 import image
+import material.{Lambert, Metal}
 import object.{Group, Sphere}
 import otpimpl
 import syncimpl
@@ -12,8 +13,10 @@ import vec3.{Vec3}
 pub fn main() -> Nil {
   let world =
     Group([
-      Sphere(Vec3(0.0, 0.0, -1.0), 0.5),
-      Sphere(Vec3(0.0, -100.5, -1.0), 100.0),
+      Sphere(Vec3(0.0, -100.5, -1.0), 100.0, Lambert(Vec3(0.8, 0.8, 0.0))),
+      Sphere(Vec3(0.0, 0.0, -1.2), 0.5, Lambert(Vec3(0.1, 0.2, 0.5))),
+      Sphere(Vec3(-1.0, 0.0, -1.0), 0.5, Metal(Vec3(0.8, 0.8, 0.8), 0.0)),
+      Sphere(Vec3(1.0, 0.0, -1.0), 0.5, Metal(Vec3(0.8, 0.6, 0.2), 0.0)),
     ])
 
   let cam = camera.new(400, 225, 100, 50)
