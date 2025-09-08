@@ -3,7 +3,7 @@ import gleam/float
 import gleam/int
 import gleam/list.{fold, range}
 import gleam/option.{None, Some}
-import gleam_community/maths
+import gleam_community/maths.{degrees_to_radians, tan}
 import interval
 import object.{type Object}
 import ray.{type Ray, Ray}
@@ -25,6 +25,9 @@ pub type Camera {
     u: Vec3,
     v: Vec3,
     w: Vec3,
+    defocus_angle: Float,
+    defocus_disk_u: Vec3,
+    defocus_disk_v: Vec3,
   )
 }
 
@@ -35,6 +38,8 @@ pub fn new(
   lookfrom: Vec3,
   lookat: Vec3,
   vup: Vec3,
+  defocus_angle: Float,
+  focus_dist: Float,
   samples: Int,
   max_depth: Int,
 ) -> Camera {
@@ -44,10 +49,9 @@ pub fn new(
 
   let center = lookfrom
 
-  let focal_length = lookfrom |> sub(lookat) |> vec3.length
-  let theta = maths.degrees_to_radians(vfov)
-  let h = maths.tan(theta /. 2.0)
-  let viewport_height = 2.0 *. h *. focal_length
+  let theta = degrees_to_radians(vfov)
+  let h = tan(theta /. 2.0)
+  let viewport_height = 2.0 *. h *. focus_dist
   let viewport_width = viewport_height *. aspect_ratio
 
   let w = lookfrom |> sub(lookat) |> normalize
@@ -62,7 +66,7 @@ pub fn new(
 
   let viewport_upper_left =
     center
-    |> sub(w |> scale(focal_length))
+    |> sub(w |> scale(focus_dist))
     |> sub(viewport_u |> div(2.0))
     |> sub(viewport_v |> div(2.0))
   let pixel00_loc =
@@ -72,6 +76,11 @@ pub fn new(
       |> add(pixel_delta_v)
       |> scale(0.5),
     )
+
+  let defocus_radius =
+    focus_dist *. tan(degrees_to_radians(defocus_angle /. 2.0))
+  let defocus_disk_u = u |> scale(defocus_radius)
+  let defocus_disk_v = v |> scale(defocus_radius)
 
   Camera(
     image_width,
@@ -87,11 +96,21 @@ pub fn new(
     u,
     v,
     w,
+    defocus_angle,
+    defocus_disk_u,
+    defocus_disk_v,
   )
 }
 
 fn sample_square() -> Vec3 {
   Vec3(float.random() -. 0.5, float.random() -. 0.5, 0.0)
+}
+
+fn defocus_disk_sample(cam: Camera) -> Vec3 {
+  let p = vec3.random_disk()
+  cam.center
+  |> add(cam.defocus_disk_u |> scale(p.x))
+  |> add(cam.defocus_disk_v |> scale(p.y))
 }
 
 fn get_ray(cam: Camera, i: Int, j: Int) -> Ray {
@@ -101,7 +120,10 @@ fn get_ray(cam: Camera, i: Int, j: Int) -> Ray {
     |> add(cam.pixel_delta_u |> scale(int.to_float(i) +. offset.x))
     |> add(cam.pixel_delta_v |> scale(int.to_float(j) +. offset.y))
 
-  let ray_orig = cam.center
+  let ray_orig = case cam.defocus_angle <=. 0.0 {
+    True -> cam.center
+    False -> defocus_disk_sample(cam)
+  }
   let ray_dir = pixel_sample |> sub(ray_orig)
 
   Ray(ray_orig, ray_dir)

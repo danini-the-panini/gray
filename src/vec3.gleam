@@ -104,3 +104,12 @@ pub fn random_hemi(normal: Vec3) -> Vec3 {
     False -> negate(on_unit_sphere)
   }
 }
+
+pub fn random_disk() -> Vec3 {
+  let p =
+    Vec3(util.random_in_range(-1.0, 1.0), util.random_in_range(-1.0, 1.0), 0.0)
+  case { length_sq(p) <. 1.0 } {
+    True -> p
+    False -> random_disk()
+  }
+}
