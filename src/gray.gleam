@@ -20,7 +20,17 @@ pub fn main() -> Nil {
       Sphere(Vec3(1.0, 0.0, -1.0), 0.5, Metal(Vec3(0.8, 0.6, 0.2), 1.0)),
     ])
 
-  let cam = camera.new(400, 225, 100, 50)
+  let cam =
+    camera.new(
+      400,
+      225,
+      20.0,
+      Vec3(-2.0, 2.0, 1.0),
+      Vec3(0.0, 0.0, -1.0),
+      Vec3(0.0, 1.0, 0.0),
+      100,
+      50,
+    )
 
   let assert Ok(file) = open_write("out.ppm")
 

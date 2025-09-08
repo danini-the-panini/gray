@@ -3,11 +3,12 @@ import gleam/float
 import gleam/int
 import gleam/list.{fold, range}
 import gleam/option.{None, Some}
+import gleam_community/maths
 import interval
 import object.{type Object}
 import ray.{type Ray, Ray}
 import scatter.{scatter}
-import vec3.{type Vec3, Vec3, add, div, mul, normalize, scale, sub}
+import vec3.{type Vec3, Vec3, add, cross, div, mul, normalize, scale, sub}
 
 pub type Camera {
   Camera(
@@ -21,12 +22,19 @@ pub type Camera {
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     pixel00_loc: Vec3,
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
   )
 }
 
 pub fn new(
   image_width: Int,
   image_height: Int,
+  vfov: Float,
+  lookfrom: Vec3,
+  lookat: Vec3,
+  vup: Vec3,
   samples: Int,
   max_depth: Int,
 ) -> Camera {
@@ -34,21 +42,27 @@ pub fn new(
 
   let samples_scale = 1.0 /. int.to_float(samples)
 
-  let center = Vec3(0.0, 0.0, 0.0)
+  let center = lookfrom
 
-  let focal_length = 1.0
-  let viewport_height = 2.0
+  let focal_length = lookfrom |> sub(lookat) |> vec3.length
+  let theta = maths.degrees_to_radians(vfov)
+  let h = maths.tan(theta /. 2.0)
+  let viewport_height = 2.0 *. h *. focal_length
   let viewport_width = viewport_height *. aspect_ratio
 
-  let viewport_u = Vec3(viewport_width, 0.0, 0.0)
-  let viewport_v = Vec3(0.0, float.negate(viewport_height), 0.0)
+  let w = lookfrom |> sub(lookat) |> normalize
+  let u = vup |> cross(w) |> normalize
+  let v = w |> cross(u)
+
+  let viewport_u = u |> scale(viewport_width)
+  let viewport_v = v |> vec3.negate |> scale(viewport_height)
 
   let pixel_delta_u = viewport_u |> div(int.to_float(image_width))
   let pixel_delta_v = viewport_v |> div(int.to_float(image_height))
 
   let viewport_upper_left =
     center
-    |> sub(Vec3(0.0, 0.0, focal_length))
+    |> sub(w |> scale(focal_length))
     |> sub(viewport_u |> div(2.0))
     |> sub(viewport_v |> div(2.0))
   let pixel00_loc =
@@ -70,6 +84,9 @@ pub fn new(
     pixel_delta_u,
     pixel_delta_v,
     pixel00_loc,
+    u,
+    v,
+    w,
   )
 }
 
